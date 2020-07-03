@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -61,9 +60,9 @@ func (b *Bot) Shutdown() {
 	b.LogInfo.Printf("%s has stopped", b.Me.FirstName)
 }
 
-func (b *Bot) Request(method string, params url.Values) (Response, error) {
-	endpoint := fmt.Sprintf(APIURL, b.token, method)
-	paramsReader := strings.NewReader(params.Encode())
+func (b *Bot) Request(api ApiMethod) (Response, error) {
+	endpoint := fmt.Sprintf(APIURL, b.token, api.method())
+	paramsReader := strings.NewReader(api.requestParam().Encode())
 
 	req, err := http.NewRequest("POST", endpoint, paramsReader)
 	if err != nil {
@@ -101,7 +100,7 @@ func newLogger() (linfo, lerror *log.Logger, err error) {
 }
 
 func (b *Bot) GetMe() (User, error) {
-	response, err := b.Request("getme", nil)
+	response, err := b.Request(GetMe{})
 	if err != nil {
 		return User{}, err
 	}

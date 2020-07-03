@@ -1,6 +1,8 @@
 package bot
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Response struct {
 	OK          bool            `json:"ok"`

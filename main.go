@@ -23,8 +23,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	bot.LogInfo.Println(bot.Me)
-
 	bot.Start()
 
 	signal.Notify(signalCh, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
