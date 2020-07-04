@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/avkspog/carlockedbot/bot"
+	"github.com/avkspog/carlockedbot/api"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	signalCh := make(chan os.Signal)
 	done := make(chan struct{})
 
-	bot, err := bot.NewBot(*token)
+	bot, err := api.NewBot(*token)
 	if err != nil {
 		log.Printf("Fatal error: %+v\n", err)
 		os.Exit(1)
