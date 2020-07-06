@@ -22,7 +22,7 @@ type Bot struct {
 	token        string
 	Me           *User
 	httpClient   *http.Client
-	shutdownChan chan<- struct{}
+	shutdownChan chan struct{}
 }
 
 func NewBot(token string) (*Bot, error) {
@@ -51,16 +51,49 @@ func NewBot(token string) (*Bot, error) {
 	return bot, nil
 }
 
-func (b *Bot) Start() {
+func (b *Bot) Start(timeout int) (<-chan Update, error) {
 	b.LogInfo.Printf("%s started\n", b.Me.FirstName)
+
+	method := GetUpdates{
+		Limit:   100,
+		Timeout: timeout,
+	}
+
+	ch := make(chan Update, 100)
+
+	go func() {
+		for {
+			select {
+			case <-b.shutdownChan:
+				close(ch)
+				return
+			default:
+			}
+
+			updates, err := b.GetUpdates(method)
+			if err != nil {
+				b.LogError.Println(err)
+				continue
+			}
+
+			for _, update := range updates {
+				if update.UpdateID >= method.Offset {
+					method.Offset = update.UpdateID + 1
+					ch <- update
+				}
+			}
+		}
+	}()
+
+	return ch, nil
 }
 
 func (b *Bot) Shutdown() {
-	close(b.shutdownChan)
-	b.LogInfo.Printf("%s has stopped", b.Me.FirstName)
+	b.shutdownChan <- struct{}{}
+	b.LogInfo.Printf("%s has stopped\n", b.Me.FirstName)
 }
 
-func (b *Bot) Request(api ApiMethod) (Response, error) {
+func (b *Bot) ApiRequest(api ApiMethod) (Response, error) {
 	endpoint := fmt.Sprintf(APIURL, b.token, api.method())
 	paramsReader := strings.NewReader(api.requestParam().Encode())
 
@@ -68,6 +101,8 @@ func (b *Bot) Request(api ApiMethod) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
+
+	fmt.Printf("DEBUG: %+v", api)
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -100,13 +135,31 @@ func newLogger() (linfo, lerror *log.Logger, err error) {
 }
 
 func (b *Bot) GetMe() (User, error) {
-	response, err := b.Request(GetMe{})
+	resp, err := b.ApiRequest(GetMe{})
 	if err != nil {
 		return User{}, err
 	}
 
 	var user User
-	json.Unmarshal(response.Result, &user)
+	err = json.Unmarshal(resp.Result, &user)
+	if err != nil {
+		return User{}, err
+	}
 
 	return user, nil
+}
+
+func (b *Bot) GetUpdates(method GetUpdates) ([]Update, error) {
+	resp, err := b.ApiRequest(method)
+	if err != nil {
+		return []Update{}, err
+	}
+
+	var updates []Update
+	err = json.Unmarshal(resp.Result, &updates)
+	if err != nil {
+		return []Update{}, err
+	}
+
+	return updates, nil
 }

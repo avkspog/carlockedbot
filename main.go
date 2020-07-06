@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -23,7 +24,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	bot.Start()
+	updateCh, err := bot.Start(60)
+	if err != nil {
+		log.Printf("Fatal error: %+v", err)
+		os.Exit(1)
+	}
+
+	HandleMessage(updateCh)
 
 	signal.Notify(signalCh, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
@@ -35,4 +42,16 @@ func main() {
 	<-done
 
 	bot.Shutdown()
+}
+
+func HandleMessage(message <-chan api.Update) {
+	go func() {
+		for {
+			msg, ok := <-message
+			if !ok {
+				continue
+			}
+			fmt.Println(msg.Message.Text)
+		}
+	}()
 }
