@@ -163,3 +163,27 @@ func (b *Bot) GetUpdates(method GetUpdates) ([]Update, error) {
 
 	return updates, nil
 }
+
+func (b *Bot) SendMessage(chatID int64, text string) (Message, error) {
+	method := SendMessage{
+		ChatID: chatID,
+		Text:   text,
+	}
+
+	return b.sendMessage(method)
+}
+
+func (b *Bot) sendMessage(method SendMessage) (Message, error) {
+	resp, err := b.ApiRequest(method)
+	if err != nil {
+		return Message{}, err
+	}
+
+	var message Message
+	err = json.Unmarshal(resp.Result, &message)
+	if err != nil {
+		return Message{}, err
+	}
+
+	return message, nil
+}

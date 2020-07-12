@@ -30,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	HandleMessage(updateCh)
+	HandleMessage(updateCh, bot)
 
 	signal.Notify(signalCh, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
@@ -44,7 +44,7 @@ func main() {
 	bot.Shutdown()
 }
 
-func HandleMessage(message <-chan api.Update) {
+func HandleMessage(message <-chan api.Update, bot *api.Bot) {
 	go func() {
 		for {
 			msg, ok := <-message
@@ -52,6 +52,8 @@ func HandleMessage(message <-chan api.Update) {
 				continue
 			}
 			fmt.Println(msg.Message.Text)
+			bot.SendMessage(msg.Message.Chat.ID, msg.Message.Text)
+
 		}
 	}()
 }
