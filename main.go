@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -10,6 +9,11 @@ import (
 
 	"github.com/avkspog/carlockedbot/api"
 )
+
+type App struct {
+	Bot      *api.Bot
+	UpdateCh <-chan api.Update
+}
 
 func main() {
 	token := flag.String("token", "", "-token=<token>")
@@ -30,7 +34,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	HandleMessage(updateCh, bot)
+	app := &App{
+		Bot:      bot,
+		UpdateCh: updateCh,
+	}
+
+	app.HandleMessages()
 
 	signal.Notify(signalCh, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
@@ -42,18 +51,4 @@ func main() {
 	<-done
 
 	bot.Shutdown()
-}
-
-func HandleMessage(message <-chan api.Update, bot *api.Bot) {
-	go func() {
-		for {
-			msg, ok := <-message
-			if !ok {
-				continue
-			}
-			fmt.Println(msg.Message.Text)
-			bot.SendMessage(msg.Message.Chat.ID, msg.Message.Text)
-
-		}
-	}()
 }

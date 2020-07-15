@@ -12,12 +12,14 @@ import (
 )
 
 const (
-	APIURL  = "https://api.telegram.org/bot%s/%s"
-	LogFile = "botlog.txt"
+	APIURL          = "https://api.telegram.org/bot%s/%s"
+	LogFile         = "botlog.txt"
+	CarNumberPrefix = "ZC"
 )
 
 type Bot struct {
 	LogInfo      *log.Logger
+	LogDebug     *log.Logger
 	LogError     *log.Logger
 	token        string
 	Me           *User
@@ -26,13 +28,14 @@ type Bot struct {
 }
 
 func NewBot(token string) (*Bot, error) {
-	linfo, lerror, err := newLogger()
+	linfo, ldebug, lerror, err := newLoggers()
 	if err != nil {
 		return nil, err
 	}
 
 	bot := &Bot{
 		LogInfo:      linfo,
+		LogDebug:     ldebug,
 		LogError:     lerror,
 		token:        token,
 		shutdownChan: make(chan struct{}),
@@ -102,7 +105,7 @@ func (b *Bot) ApiRequest(api ApiMethod) (Response, error) {
 		return Response{}, err
 	}
 
-	fmt.Printf("DEBUG: %+v", api)
+	b.LogDebug.Printf("REQUEST: %+v\n", api)
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -123,13 +126,14 @@ func (b *Bot) ApiRequest(api ApiMethod) (Response, error) {
 	return response, nil
 }
 
-func newLogger() (linfo, lerror *log.Logger, err error) {
+func newLoggers() (linfo, ldebug, lerror *log.Logger, err error) {
 	file, err := os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		return
 	}
 
 	linfo = log.New(file, "[INFO]: ", log.Ldate|log.Ltime|log.Lshortfile)
+	ldebug = log.New(file, "[DEBUG]: ", log.Ldate|log.Ltime|log.Lshortfile)
 	lerror = log.New(file, "[ERROR]: ", log.Ldate|log.Ltime|log.Lshortfile)
 	return
 }

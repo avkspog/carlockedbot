@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"strings"
 )
 
 type Response struct {
@@ -35,6 +36,27 @@ type Message struct {
 	Chat      *Chat            `json:"chat"`
 	Text      string           `json:"text"`
 	Entities  *[]MessageEntity `json:"entities"`
+}
+
+func (m Message) IsCarNumber() bool {
+	if m.Text == "" {
+		return false
+	}
+
+	if strings.HasPrefix(m.Text, CarNumberPrefix) {
+		return true
+	}
+
+	return false
+}
+
+func (m Message) IsCommand() bool {
+	if m.Entities == nil || len(*m.Entities) == 0 {
+		return false
+	}
+
+	entity := (*m.Entities)[0]
+	return entity.Offset == 0 && entity.Type == "bot_command"
 }
 
 type Chat struct {
